@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Voice Assistant - Food Delivery Marketplace</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(.33);
+                opacity: 1;
+            }
+            80%, 100% {
+                transform: scale(2.33);
+                opacity: 0;
+            }
+        }
+        
+        .listening-animation {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            background-size: 300% 300%;
+            animation: gradient 2s ease infinite;
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .voice-wave {
+            animation: voice-wave 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes voice-wave {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(1.5); }
+        }
+        
+        .food-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .food-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-results-enter {
+            animation: slideInUp 0.6s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-4xl font-bold mb-2">
+                <i class="fas fa-microphone-alt mr-3"></i>
+                Smart Voice Assistant
+            </h1>
+            <p class="text-blue-100 text-lg">AI-Powered Food Delivery & Service Marketplace</p>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto p-6">
+        <!-- Voice Control Section -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Voice Assistant</h2>
+                
+                <!-- Microphone Button -->
+                <div class="relative inline-block mb-6">
+                    <button id="micButton" class="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-24 h-24 flex items-center justify-center text-3xl transition-all duration-300 relative overflow-hidden">
+                        <div id="pulseRing" class="absolute inset-0 rounded-full bg-blue-400 opacity-75 hidden pulse-ring"></div>
+                        <i id="micIcon" class="fas fa-microphone relative z-10"></i>
+                    </button>
+                </div>
+                
+                <!-- Status Display -->
+                <div id="statusDisplay" class="mb-4">
+                    <p class="text-gray-600 text-lg">Click the microphone to start</p>
+                </div>
+                
+                <!-- Voice Visualization -->
+                <div id="voiceVisualizer" class="flex justify-center items-center space-x-1 mb-6 hidden">
+                    <div class="w-2 h-8 bg-blue-400 voice-wave" style="animation-delay: 0s"></div>
+                    <div class="w-2 h-12 bg-blue-500 voice-wave" style="animation-delay: 0.1s"></div>
+                    <div class="w-2 h-6 bg-blue-400 voice-wave" style="animation-delay: 0.2s"></div>
+                    <div class="w-2 h-10 bg-blue-500 voice-wave" style="animation-delay: 0.3s"></div>
+                    <div class="w-2 h-8 bg-blue-400 voice-wave" style="animation-delay: 0.4s"></div>
+                </div>
+                
+                <!-- Transcript Display -->
+                <div id="transcriptDisplay" class="bg-gray-100 rounded-lg p-4 min-h-16 mb-4 hidden">
+                    <p class="text-gray-700 italic">Your speech will appear here...</p>
+                </div>
+                
+                <!-- Example Queries -->
+                <div class="text-sm text-gray-500 mb-4">
+                    <p class="font-semibold mb-2">Try saying:</p>
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full cursor-pointer hover:bg-blue-200" onclick="simulateVoiceQuery('I want a vegan lunch under 10 dollars')">
+                            "I want a vegan lunch under 10 dollars"
+                        </span>
+                        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full cursor-pointer hover:bg-green-200" onclick="simulateVoiceQuery('Find me Italian restaurants near me')">
+                            "Find me Italian restaurants near me"
+                        </span>
+                        <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full cursor-pointer hover:bg-purple-200" onclick="simulateVoiceQuery('Show me healthy options under 15 dollars')">
+                            "Show me healthy options under 15 dollars"
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Voice Controls -->
+                <div class="flex justify-center space-x-4">
+                    <button id="stopListening" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg hidden transition-colors">
+                        <i class="fas fa-stop mr-2"></i>Stop Listening
+                    </button>
+                    <button id="clearResults" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-trash mr-2"></i>Clear Results
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results Section -->
+        <div id="searchResults" class="hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-search mr-2 text-blue-500"></i>
+                    Search Results
+                </h3>
+                <div id="searchQuery" class="bg-blue-50 p-4 rounded-lg mb-6">
+                    <p class="text-blue-800 font-semibold">Query: <span id="queryText"></span></p>
+                </div>
+                <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Assistant Response Section -->
+        <div id="assistantResponse" class="hidden">
+            <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 mb-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-robot mr-2 text-green-500"></i>
+                    Assistant Response
+                </h3>
+                <div id="responseText" class="text-gray-700 mb-4 text-lg leading-relaxed"></div>
+                <button id="speakResponse" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-volume-up mr-2"></i>Play Voice Response
+                </button>
+            </div>
+        </div>
+
+        <!-- Demo Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                <div class="text-3xl font-bold text-blue-600 mb-2">1,250+</div>
+                <div class="text-gray-600">Restaurants</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                <div class="text-3xl font-bold text-green-600 mb-2">15,000+</div>
+                <div class="text-gray-600">Menu Items</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                <div class="text-3xl font-bold text-purple-600 mb-2">50+</div>
+                <div class="text-gray-600">Cities</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                <div class="text-3xl font-bold text-orange-600 mb-2">98%</div>
+                <div class="text-gray-600">Accuracy</div>
+            </div>
+        </div>
+
+        <!-- Technology Stack -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">Technology Stack</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <i class="fas fa-microphone text-3xl text-blue-500 mb-2"></i>
+                    <p class="font-semibold">Web Speech API</p>
+                    <p class="text-sm text-gray-600">Speech Recognition</p>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <i class="fas fa-search text-3xl text-green-500 mb-2"></i>
+                    <p class="font-semibold">Semantic Search</p>
+                    <p class="text-sm text-gray-600">Vector Matching</p>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <i class="fas fa-volume-up text-3xl text-purple-500 mb-2"></i>
+                    <p class="font-semibold">Text-to-Speech</p>
+                    <p class="text-sm text-gray-600">Voice Synthesis</p>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <i class="fas fa-database text-3xl text-orange-500 mb-2"></i>
+                    <p class="font-semibold">Vector DB</p>
+                    <p class="text-sm text-gray-600">Qdrant Integration</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock restaurant and food data
+        const mockData = [
+            {
+                id: 1,
+                name: "Green Leaf Vegan Bowl",
+                restaurant: "Healthy Bites",
+                price: 8.99,
+                category: "vegan",
+                tags: ["healthy", "vegan", "bowl", "lunch"],
+                description: "Fresh quinoa bowl with roasted vegetables and tahini dressing",
+                image: "🥗",
+                rating: 4.8,
+                prepTime: "15 min"
+            },
+            {
+                id: 2,
+                name: "Mediterranean Wrap",
+                restaurant: "Fresh Corner",
+                price: 9.50,
+                category: "vegetarian",
+                tags: ["vegetarian", "mediterranean", "wrap", "healthy"],
+                description: "Hummus, falafel, fresh vegetables in whole wheat wrap",
+                image: "🌯",
+                rating: 4.6,
+                prepTime: "12 min"
+            },
+            {
+                id: 3,
+                name: "Vegan Buddha Bowl",
+                restaurant: "Plant Power",
+                price: 7.99,
+                category: "vegan",
+                tags: ["vegan", "healthy", "bowl", "organic"],
+                description: "Organic vegetables, brown rice, and cashew cream sauce",
+                image: "🍜",
+                rating: 4.9,
+                prepTime: "18 min"
+            },
+            {
+                id: 4,
+                name: "Margherita Pizza",
+                restaurant: "Tony's Italian",
+                price: 12.99,
+                category: "italian",
+                tags: ["pizza", "italian", "vegetarian", "cheese"],
+                description: "Classic pizza with fresh mozzarella, basil, and tomato sauce",
+                image: "🍕",
+                rating: 4.7,
+                prepTime: "25 min"
+            },
+            {
+                id: 5,
+                name: "Chicken Caesar Salad",
+                restaurant: "Green Garden",
+                price: 11.99,
+                category: "salad",
+                tags: ["salad", "chicken", "healthy", "protein"],
+                description: "Grilled chicken, romaine lettuce, parmesan, and caesar dressing",
+                image: "🥙",
+                rating: 4.5,
+                prepTime: "10 min"
+            },
+            {
+                id: 6,
+                name: "Quinoa Power Bowl",
+                restaurant: "Fit Kitchen",
+                price: 10.99,
+                category: "healthy",
+                tags: ["quinoa", "healthy", "protein", "vegetables"],
+                description: "Protein-packed quinoa with grilled vegetables and avocado",
+                image: "🍲",
+                rating: 4.8,
+                prepTime: "20 min"
+            },
+            {
+                id: 7,
+                name: "Vegan Pasta Primavera",
+                restaurant: "Garden Bistro",
+                price: 13.99,
+                category: "vegan",
+                tags: ["pasta", "vegan", "italian", "vegetables"],
+                description: "Whole wheat pasta with seasonal vegetables in herb oil",
+                image: "🍝",
+                rating: 4.6,
+                prepTime: "22 min"
+            },
+            {
+                id: 8,
+                name: "Thai Green Curry",
+                restaurant: "Spice House",
+                price: 14.50,
+                category: "thai",
+                tags: ["thai", "curry", "spicy", "coconut"],
+                description: "Traditional green curry with vegetables and jasmine rice",
+                image: "🍛",
+                rating: 4.7,
+                prepTime: "18 min"
+            }
+        ];
+
+        // Speech recognition setup
+        let recognition;
+        let isListening = false;
+        let speechSynthesis = window.speechSynthesis;
+
+        // Initialize speech recognition
+        function initializeSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = function() {
+                    isListening = true;
+                    updateMicButtonState(true);
+                    document.getElementById('statusDisplay').innerHTML = '<p class="text-green-600 text-lg font-semibold">🎤 Listening... Speak now!</p>';
+                    document.getElementById('voiceVisualizer').classList.remove('hidden');
+                    document.getElementById('transcriptDisplay').classList.remove('hidden');
+                };
+
+                recognition.onresult = function(event) {
+                    let transcript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        transcript += event.results[i][0].transcript;
+                    }
+                    
+                    document.getElementById('transcriptDisplay').innerHTML = 
+                        `<p class="text-gray-700"><strong>You said:</strong> "${transcript}"</p>`;
+                    
+                    if (event.results[event.results.length - 1].isFinal) {
+                        processVoiceQuery(transcript);
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    isListening = false;
+                    updateMicButtonState(false);
+                    document.getElementById('statusDisplay').innerHTML = 
+                        '<p class="text-red-600 text-lg">❌ Error: ' + event.error + '</p>';
+                };
+
+                recognition.onend = function() {
+                    isListening = false;
+                    updateMicButtonState(false);
+                    document.getElementById('voiceVisualizer').classList.add('hidden');
+                };
+            } else {
+                document.getElementById('statusDisplay').innerHTML = 
+                    '<p class="text-red-600 text-lg">❌ Speech recognition not supported in this browser</p>';
+            }
+        }
+
+        // Update microphone button state
+        function updateMicButtonState(listening) {
+            const micButton = document.getElementById('micButton');
+            const micIcon = document.getElementById('micIcon');
+            const pulseRing = document.getElementById('pulseRing');
+            const stopButton = document.getElementById('stopListening');
+
+            if (listening) {
+                micButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                micButton.classList.add('listening-animation');
+                pulseRing.classList.remove('hidden');
+                stopButton.classList.remove('hidden');
+                document.getElementById('statusDisplay').innerHTML = 
+                    '<p class="text-green-600 text-lg font-semibold">🎤 Listening... Speak now!</p>';
+            } else {
+                micButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                micButton.classList.remove('listening-animation');
+                pulseRing.classList.add('hidden');
+                stopButton.classList.add('hidden');
+                document.getElementById('statusDisplay').innerHTML = 
+                    '<p class="text-gray-600 text-lg">Click the microphone to start</p>';
+            }
+        }
+
+        // Process voice query
+        function processVoiceQuery(query) {
+            document.getElementById('statusDisplay').innerHTML = 
+                '<p class="text-blue-600 text-lg font-semibold">🧠 Processing your request...</p>';
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                const results = performSemanticSearch(query);
+                displayResults(query, results);
+                generateResponse(query, results);
+            }, 1500);
+        }
+
+        // Perform semantic search (mock implementation)
+        function performSemanticSearch(query) {
+            const queryLower = query.toLowerCase();
+            const words = queryLower.split(' ');
+            
+            // Extract price constraint
+            let maxPrice = null;
+            const priceMatch = query.match(/under (\d+)|less than (\d+)|below (\d+)/i);
+            if (priceMatch) {
+                maxPrice = parseInt(priceMatch[1] || priceMatch[2] || priceMatch[3]);
+            }
+            
+            // Score each item based on relevance
+            const scoredResults = mockData.map(item => {
+                let score = 0;
+                
+                // Check price constraint
+                if (maxPrice && item.price > maxPrice) {
+                    return { ...item, score: 0 };
+                }
+                
+                // Name matching
+                if (words.some(word => item.name.toLowerCase().includes(word))) {
+                    score += 3;
+                }
+                
+                // Category matching
+                if (words.some(word => item.category.toLowerCase().includes(word))) {
+                    score += 2;
+                }
+                
+                // Tags matching
+                item.tags.forEach(tag => {
+                    if (words.some(word => tag.includes(word) || word.includes(tag))) {
+                        score += 1;
+                    }
+                });
+                
+                // Description matching
+                if (words.some(word => item.description.toLowerCase().includes(word))) {
+                    score += 1;
+                }
+                
+                // Restaurant matching
+                if (words.some(word => item.restaurant.toLowerCase().includes(word))) {
+                    score += 1;
+                }
+                
+                return { ...item, score };
+            });
+            
+            // Filter and sort by relevance
+            return scoredResults
+                .filter(item => item.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 6);
+        }
+
+        // Display search results
+        function displayResults(query, results) {
+            document.getElementById('queryText').textContent = query;
+            document.getElementById('searchResults').classList.remove('hidden');
+            document.getElementById('searchResults').classList.add('search-results-enter');
+            
+            const container = document.getElementById('resultsContainer');
+            
+            if (results.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
+                        <p class="text-xl text-gray-500">No results found for your query.</p>
+                        <p class="text-gray-400 mt-2">Try different keywords or filters.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = results.map(item => `
+                <div class="food-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="text-4xl mb-2">${item.image}</div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-green-600">$${item.price}</div>
+                                <div class="text-sm text-gray-500">${item.prepTime}</div>
+                            </div>
+                        </div>
+                        <h4 class="text-xl font-bold text-gray-800 mb-2">${item.name}</h4>
+                        <p class="text-sm font-medium text-blue-600 mb-2">${item.restaurant}</p>
+                        <p class="text-gray-600 text-sm mb-4">${item.description}</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="flex text-yellow-400">
+                                    ${Array(5).fill().map((_, i) => 
+                                        `<i class="fas fa-star ${i < Math.floor(item.rating) ? '' : 'text-gray-300'}"></i>`
+                                    ).join('')}
+                                </div>
+                                <span class="ml-2 text-sm text-gray-600">${item.rating}</span>
+                            </div>
+                            <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                                <i class="fas fa-shopping-cart mr-1"></i>Add to Cart
+                            </button>
+                        </div>
+                        <div class="mt-3 flex flex-wrap gap-1">
+                            ${item.tags.slice(0, 3).map(tag => 
+                                `<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">${tag}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Generate and display assistant response
+        function generateResponse(query, results) {
+            let responseText = '';
+            
+            if (results.length === 0) {
+                responseText = "I couldn't find any items matching your criteria. You might want to try different keywords or expand your search parameters.";
+            } else if (results.length === 1) {
+                const item = results[0];
+                responseText = `I found a perfect match for you! The ${item.name} from ${item.restaurant} costs $${item.price} and is ${item.description.toLowerCase()}. It has a ${item.rating} star rating and takes about ${item.prepTime} to prepare.`;
+            } else {
+                const topItems = results.slice(0, 2);
+                responseText = `I found ${results.length} great options for you! The top recommendations are: ${topItems[0].name} from ${topItems[0].restaurant} for $${topItems[0].price}, and ${topItems[1].name} from ${topItems[1].restaurant} for $${topItems[1].price}. Both have excellent ratings and match your criteria perfectly.`;
+            }
+            
+            document.getElementById('responseText').textContent = responseText;
+            document.getElementById('assistantResponse').classList.remove('hidden');
+            
+            // Update status
+            document.getElementById('statusDisplay').innerHTML = 
+                '<p class="text-green-600 text-lg font-semibold">✅ Search completed successfully!</p>';
+        }
+
+        // Text-to-Speech function
+        function speakText(text) {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+                return;
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            
+            // Try to use a pleasant voice
+            const voices = speechSynthesis.getVoices();
+            const preferredVoice = voices.find(voice => 
+                voice.name.includes('Google') || 
+                voice.name.includes('Microsoft') || 
+                voice.lang.includes('en')
+            );
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+            
+            utterance.onstart = function() {
+                document.getElementById('speakResponse').innerHTML = 
+                    '<i class="fas fa-stop mr-2"></i>Stop Speaking';
+            };
+            
+            utterance.onend = function() {
+                document.getElementById('speakResponse').innerHTML = 
+                    '<i class="fas fa-volume-up mr-2"></i>Play Voice Response';
+            };
+            
+            speechSynthesis.speak(utterance);
+        }
+
+        // Simulate voice query (for demo buttons)
+        function simulateVoiceQuery(query) {
+            document.getElementById('transcriptDisplay').classList.remove('hidden');
+            document.getElementById('transcriptDisplay').innerHTML = 
+                `<p class="text-gray-700"><strong>Simulated query:</strong> "${query}"</p>`;
+            processVoiceQuery(query);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSpeechRecognition();
+            
+            // Microphone button
+            document.getElementById('micButton').addEventListener('click', function() {
+                if (!recognition) {
+                    alert('Speech recognition not supported in this browser');
+                    return;
+                }
+                
+                if (isListening) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            });
+            
+            // Stop listening button
+            document.getElementById('stopListening').addEventListener('click', function() {
+                if (recognition && isListening) {
+                    recognition.stop();
+                }
+            });
+            
+            // Clear results button
+            document.getElementById('clearResults').addEventListener('click', function() {
+                document.getElementById('searchResults').classList.add('hidden');
+                document.getElementById('assistantResponse').classList.add('hidden');
+                document.getElementById('transcriptDisplay').classList.add('hidden');
+                document.getElementById('statusDisplay').innerHTML = 
+                    '<p class="text-gray-600 text-lg">Click the microphone to start</p>';
+                
+                if (speechSynthesis.speaking) {
+                    speechSynthesis.cancel();
+                }
+            });
+            
+            // Speak response button
+            document.getElementById('speakResponse').addEventListener('click', function() {
+                const responseText = document.getElementById('responseText').textContent;
+                speakText(responseText);
+            });
+            
+            // Load voices for TTS
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = function() {
+                    speechSynthesis.getVoices();
+                };
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space' && event.target.tagName !== 'INPUT') {
+                event.preventDefault();
+                document.getElementById('micButton').click();
+            }
+            if (event.key === 'Escape') {
+                if (recognition && isListening) {
+                    recognition.stop();
+                }
+                if (speechSynthesis.speaking) {
+                    speechSynthesis.cancel();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
